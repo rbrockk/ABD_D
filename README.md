@@ -1,210 +1,149 @@
-# ABD_D
-Espacio de trabajo para el proyecto basado en una base de datos relacional para la gestion de un credito de consumo.
+# Sistema de Gestión de Créditos de Consumo
 
-# Propuesta: Sistema de Base de Datos para Créditos de Consumo
-
-## **1. Descripción del Proyecto**
-El proyecto busca desarrollar un sistema de base de datos eficiente y seguro para gestionar toda la información relacionada con los créditos de consumo. Esto incluye clientes, productos de crédito, pagos, plazos, estados financieros y reportes de saldos. El sistema optimiza el seguimiento de créditos, garantizando la integridad, accesibilidad y confidencialidad de los datos.
+Este repositorio contiene un sistema diseñado para la gestión eficiente y segura de créditos de consumo en instituciones financieras. Incluye funcionalidades para administrar clientes, sucursales, solicitudes de crédito, pagos, estados financieros y reportes.
 
 ---
 
-## **2. Objetivos**
-
-### **Objetivo General**
-Desarrollar un sistema de base de datos que permita gestionar de manera eficiente y segura la información relacionada con los créditos de consumo.
-
-### **Objetivos Específicos**
-1. Calcular intereses generados sobre el saldo pendiente y cargos relacionados con pagos tardíos.
-2. Implementar un historial completo de pagos (amortizaciones) para cada cliente.
-3. Emitir reportes detallados sobre:
-   - Saldos pendientes por cliente.
-   - Créditos otorgados en un periodo.
-   - Créditos vencidos en un periodo.
-   - Tabla de pagos y amortizaciones por crédito.
+## Tabla de Contenidos
+1. [Descripción General](#descripción-general)
+2. [Características](#características)
+3. [Diseño de la Base de Datos](#diseño-de-la-base-de-datos)
+4. [Requisitos del Sistema](#requisitos-del-sistema)
+5. [Instalación](#instalación)
+6. [Uso](#uso)
+7. [Contribuciones](#contribuciones)
+8. [Licencia](#licencia)
+9. [Contacto](#contacto)
 
 ---
 
-## **3. Entidades Principales**
-1. **Banco**: Administra las sucursales que gestionan los créditos.
-2. **Sucursal**: Oficina bancaria donde clientes gestionan sus productos.
-3. **Clientes**: Personas que solicitan créditos.
-4. **Solicitudes de Crédito**: Solicitudes realizadas por los clientes.
-5. **Créditos**: Créditos otorgados a los clientes.
-6. **Transacciones**: Registro de pagos, amortizaciones e intereses.
-7. **Historial de Estados** (Opcional): Registro de cambios de estado de solicitudes y créditos.
-8. **Configuración Financiera** (Opcional): Tasas de interés y penalizaciones.
+## Descripción General
+
+El **Sistema de Gestión de Créditos de Consumo** es una solución que permite a las instituciones financieras organizar y gestionar toda la información relevante sobre créditos de consumo. Desde el registro de clientes hasta el manejo de transacciones y reportes, este sistema está diseñado para optimizar las operaciones financieras y garantizar la integridad de los datos.
 
 ---
 
-## **4. Esquema de Base de Datos**
-El sistema se organiza en el esquema `credito`, con las siguientes tablas:
+## Características
 
-1. **Banco**: Representa los bancos que administran las sucursales.
-2. **Sucursal**: Representa las sucursales del banco.
-3. **Clientes**: Información de los clientes.
-4. **Solicitud_Credito**: Registra las solicitudes de los clientes.
-5. **Creditos**: Detalla los créditos otorgados.
-6. **Transacciones**: Registro de pagos, amortizaciones e intereses.
-7. **Historial_Estados** (Opcional): Cambios en los estados de solicitudes y créditos.
-8. **Configuracion_Financiera** (Opcional): Configuraciones globales.
-
----
-
-## **5. Consultas Esenciales**
-
-### **1. Cálculo de Intereses y Amortizaciones**
-```sql
-SELECT 
-    c.id_credito,
-    c.monto_original,
-    c.saldo_pendiente,
-    c.tasa_interes_anual,
-    (c.saldo_pendiente * (c.tasa_interes_anual / 100) / 12) AS interes_mensual
-FROM credito.Creditos c;
-```
-
-### **2. Historial de Pagos**
-```sql
-SELECT 
-    t.id_transaccion,
-    t.id_credito,
-    t.fecha_transaccion,
-    t.monto_transaccion,
-    t.interes_pagado,
-    t.amortizacion_pagada,
-    (c.saldo_pendiente - t.amortizacion_pagada) AS saldo_restante
-FROM credito.Transacciones t
-JOIN credito.Creditos c ON t.id_credito = c.id_credito
-ORDER BY t.fecha_transaccion ASC;
-```
-
-### **3. Reportes**
-**a. Tabla de Pagos por Crédito**:
-```sql
-SELECT 
-    c.id_credito,
-    t.fecha_transaccion,
-    t.amortizacion_pagada,
-    (c.monto_original - SUM(t.amortizacion_pagada) OVER (PARTITION BY c.id_credito ORDER BY t.fecha_transaccion)) AS saldo_restante
-FROM credito.Transacciones t
-JOIN credito.Creditos c ON t.id_credito = c.id_credito
-WHERE t.tipo_transaccion = 'Pago'
-ORDER BY c.id_credito, t.fecha_transaccion;
-```
-
-**b. Créditos Otorgados en un Periodo**:
-```sql
-SELECT 
-    c.id_cliente,
-    c.id_credito,
-    c.monto_original,
-    c.fecha_inicio,
-    c.fecha_vencimiento
-FROM credito.Creditos c
-WHERE c.fecha_inicio BETWEEN '2025-01-01' AND '2025-12-31'
-ORDER BY c.fecha_inicio ASC;
-```
-
-**c. Créditos Vencidos**:
-```sql
-SELECT 
-    c.id_cliente,
-    c.id_credito,
-    c.saldo_pendiente,
-    c.fecha_vencimiento
-FROM credito.Creditos c
-WHERE c.fecha_vencimiento < CURRENT_DATE
-ORDER BY c.fecha_vencimiento ASC;
-```
+- Gestión de clientes utilizando su RFC como identificador único.
+- Administración de sucursales con llaves derivadas basadas en ubicación (CP, calle, colonia).
+- Generación de IDs derivados para solicitudes, créditos, transacciones y estados financieros.
+- Cálculo de intereses y amortizaciones.
+- Generación de reportes detallados:
+  - Créditos activos y vencidos.
+  - Historial de pagos.
+  - Estados financieros por cliente y periodo.
+- Soporte para múltiples sucursales y configuraciones financieras.
 
 ---
 
-## **6. Archivo SQL**
-El archivo completo para crear el esquema y las tablas se encuentra en el siguiente archivo:
+## Diseño de la Base de Datos
 
-````sql name=credito_esquema.sql
--- Crear el esquema "credito"
-CREATE SCHEMA credito;
+El sistema utiliza un esquema relacional con las siguientes tablas principales:
+1. **Banco**: Gestión de bancos y sus sucursales.
+2. **Sucursal**: Identificada por CP, calle y colonia.
+3. **Clientes**: Identificados por su RFC.
+4. **Solicitudes de Crédito**: Identificadas por RFC y un folio único.
+5. **Créditos**: Identificados por el día de inicio y el nombre del cliente.
+6. **Transacciones**: Identificadas por el crédito y un número único.
+7. **Estado de Cuenta**: Identificados por RFC y periodo (mes/año).
+8. **Historial de Estados**: Cambios en solicitudes y créditos.
+9. **Configuración Financiera**: Tasas de interés y penalizaciones.
 
--- Tabla Banco
-CREATE TABLE credito.Banco (
-    id_banco SERIAL PRIMARY KEY,
-    nombre_banco VARCHAR(100) NOT NULL
-);
+---
 
--- Tabla Sucursal
-CREATE TABLE credito.Sucursal (
-    id_sucursal SERIAL PRIMARY KEY,
-    nombre_sucursal VARCHAR(100) NOT NULL,
-    direccion_sucursal VARCHAR(255) NOT NULL,
-    id_banco INT NOT NULL,
-    FOREIGN KEY (id_banco) REFERENCES credito.Banco(id_banco)
-);
+## Requisitos del Sistema
 
--- Tabla Clientes
-CREATE TABLE credito.Clientes (
-    id_cliente SERIAL PRIMARY KEY,
-    nombre_cliente VARCHAR(100) NOT NULL,
-    direccion VARCHAR(255) NOT NULL,
-    telefono VARCHAR(20) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    fecha_creacion DATE NOT NULL DEFAULT CURRENT_DATE,
-    id_sucursal INT NOT NULL,
-    FOREIGN KEY (id_sucursal) REFERENCES credito.Sucursal(id_sucursal)
-);
+- **Gestor de Base de Datos:** PostgreSQL 13+
+- **Lenguaje:** SQL
+- **Entorno de Desarrollo:** Compatible con cualquier herramienta de gestión SQL como pgAdmin, DBeaver o CLI de PostgreSQL.
 
--- Tabla Solicitud de Crédito
-CREATE TABLE credito.Solicitud_Credito (
-    id_solicitud SERIAL PRIMARY KEY,
-    folio_solicitud VARCHAR(50) NOT NULL UNIQUE,
-    estado_solicitud VARCHAR(20) NOT NULL,
-    fecha_solicitud DATE NOT NULL DEFAULT CURRENT_DATE,
-    id_cliente INT NOT NULL,
-    id_sucursal INT NOT NULL,
-    FOREIGN KEY (id_cliente) REFERENCES credito.Clientes(id_cliente),
-    FOREIGN KEY (id_sucursal) REFERENCES credito.Sucursal(id_sucursal)
-);
+---
 
--- Tabla Créditos
-CREATE TABLE credito.Creditos (
-    id_credito SERIAL PRIMARY KEY,
-    id_cliente INT NOT NULL,
-    monto_original DECIMAL(15, 2) NOT NULL,
-    saldo_pendiente DECIMAL(15, 2) NOT NULL,
-    tasa_interes_anual DECIMAL(5, 2) NOT NULL,
-    fecha_inicio DATE NOT NULL,
-    fecha_vencimiento DATE NOT NULL,
-    estado_credito VARCHAR(20) NOT NULL,
-    FOREIGN KEY (id_cliente) REFERENCES credito.Clientes(id_cliente)
-);
+## Instalación
 
--- Tabla Transacciones
-CREATE TABLE credito.Transacciones (
-    id_transaccion SERIAL PRIMARY KEY,
-    id_credito INT NOT NULL,
-    tipo_transaccion VARCHAR(20) NOT NULL,
-    monto_transaccion DECIMAL(15, 2) NOT NULL,
-    interes_pagado DECIMAL(15, 2),
-    amortizacion_pagada DECIMAL(15, 2),
-    fecha_transaccion DATE NOT NULL DEFAULT CURRENT_DATE,
-    FOREIGN KEY (id_credito) REFERENCES credito.Creditos(id_credito)
-);
+Sigue estos pasos para implementar el sistema en tu entorno:
 
--- Tabla Historial de Estados (Opcional)
-CREATE TABLE credito.Historial_Estados (
-    id_historial SERIAL PRIMARY KEY,
-    id_solicitud INT,
-    id_credito INT,
-    estado VARCHAR(50) NOT NULL,
-    fecha_cambio DATE NOT NULL DEFAULT CURRENT_DATE,
-    FOREIGN KEY (id_solicitud) REFERENCES credito.Solicitud_Credito(id_solicitud),
-    FOREIGN KEY (id_credito) REFERENCES credito.Creditos(id_credito)
-);
+1. **Clona este repositorio**:
+   ```bash
+   git clone https://github.com/rbrockk/sistema-gestion-creditos.git
+   cd sistema-gestion-creditos
+   ```
 
--- Tabla Configuración Financiera (Opcional)
-CREATE TABLE credito.Configuracion_Financiera (
-    id_configuracion SERIAL PRIMARY KEY,
-    tasa_interes_anual DECIMAL(5, 2) NOT NULL,
-    penalizacion_mora DECIMAL(15, 2) NOT NULL,
-    fecha_vigencia DATE NOT NULL DEFAULT CURRENT_DATE
-);
+2. **Crea la base de datos en PostgreSQL**:
+   Conéctate a PostgreSQL y ejecuta:
+   ```sql
+   CREATE DATABASE sistema_creditos;
+   ```
+
+3. **Ejecuta el script SQL**:
+   Importa el archivo `credito_bd_completa.sql` en tu base de datos. Por ejemplo:
+   ```bash
+   psql -U tu_usuario -d sistema_creditos -f credito_bd_completa.sql
+   ```
+
+4. **Verifica las tablas y datos iniciales**:
+   Revisa que todas las tablas estén creadas correctamente y que los datos de prueba estén disponibles.
+
+---
+
+## Uso
+
+### Consultas Básicas
+
+1. **Ver todos los clientes registrados**:
+   ```sql
+   SELECT * FROM credito.Clientes;
+   ```
+
+2. **Obtener el historial de transacciones de un cliente**:
+   ```sql
+   SELECT t.* 
+   FROM credito.Transacciones t
+   JOIN credito.Creditos c ON t.id_credito = c.id_credito
+   WHERE c.RFC_cliente = 'ABC123456789';
+   ```
+
+3. **Generar reporte de créditos activos**:
+   ```sql
+   SELECT * 
+   FROM credito.Creditos 
+   WHERE estado_credito = 'Activo';
+   ```
+
+### Personalización
+
+Puedes agregar nuevos datos de prueba o realizar migraciones adicionales para expandir la funcionalidad del sistema.
+
+---
+
+## Contribuciones
+
+Contribuciones son bienvenidas. Sigue estos pasos para colaborar:
+
+1. Haz un fork de este repositorio.
+2. Crea una rama para tus cambios:
+   ```bash
+   git checkout -b feature/nueva-funcionalidad
+   ```
+3. Realiza tus cambios y haz un commit:
+   ```bash
+   git commit -m "Agregada nueva funcionalidad"
+   ```
+4. Envía un pull request con una descripción detallada de los cambios.
+
+---
+
+## Licencia
+
+Este proyecto está bajo la licencia MIT. Consulta el archivo `LICENSE` para más información.
+
+---
+
+## Contacto
+
+Para preguntas o soporte, contacta a:
+
+- **Nombre:** Ricardo Brock
+- **Email:** rbrockk@example.com
+- **GitHub:** [rbrockk](https://github.com/rbrockk)
