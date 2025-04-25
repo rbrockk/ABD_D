@@ -144,6 +144,6 @@ Este proyecto está bajo la licencia MIT. Consulta el archivo `LICENSE` para má
 
 Para preguntas o soporte, contacta a:
 
-- **Nombre:** Ricardo Brock
-- **Email:** rbrockk@example.com
+- **Nombre:** Roberto Flores
+- **Email:** 
 - **GitHub:** [rbrockk](https://github.com/rbrockk)
