@@ -1,4 +1,3 @@
--- Función y Trigger para Zonas y Sucursales
 
 -- 1. Función para obtener el próximo número de zona
 
