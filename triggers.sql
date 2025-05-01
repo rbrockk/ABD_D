@@ -1,4 +1,3 @@
-
 -- Función y Trigger para Zonas y Sucursales
 
 -- 1. Función para obtener el próximo número de zona
@@ -88,14 +87,18 @@ CREATE TRIGGER set_estado_solicitud
 BEFORE INSERT ON Solicitud_Credito
 FOR EACH ROW
 BEGIN
-    -- Asignar automáticamente el estado 'Pendiente' para la solicitud
-    SET NEW.S_C_estado_sol = 'Pendiente';
+    -- Asignar automáticamente el estado 'Pendiente' solo si no se proporciona un valor
+    IF NEW.S_C_estado_sol IS NULL THEN
+        SET NEW.S_C_estado_sol = 'Pendiente';
+    END IF;
     
-    -- Asignar fecha de solicitud con una fecha pasada (por ejemplo, 1 mes antes de hoy)
-    SET NEW.S_C_fecha_sol = CURDATE() - INTERVAL 1 MONTH;
+    -- Asignar automáticamente la fecha de solicitud solo si no se proporciona un valor
+    IF NEW.S_C_fecha_sol IS NULL THEN
+        SET NEW.S_C_fecha_sol = CURDATE() - INTERVAL 1 MONTH;
+    END IF;
 END$$
 
-DELIMITER ;
+DELIMITER ;
 
 -- 6. Trigger para registrar los cambios de estado
 
@@ -142,7 +145,12 @@ BEGIN
     END IF;
 
     -- Generar la referencia combinando la fecha y el número incremental
-    SET NEW.T_referencia = CONCAT(fecha_actual, LPAD(max_referencia, 1, '0'));
+    SET NEW.T_referencia = CONCAT(fecha_actual, LPAD(max_referencia, 3, '0'));
+
+    -- Establecer la fecha predeterminada si no se proporciona
+    IF NEW.T_fecha IS NULL THEN
+        SET NEW.T_fecha = CURDATE();
+    END IF;
 END$$
 
 DELIMITER ;
@@ -220,9 +228,14 @@ FOR EACH ROW
 BEGIN
     -- Verificar si el estado cambió a 'Aprobada'
     IF NEW.S_C_estado_sol = 'Aprobada' AND OLD.S_C_estado_sol != 'Aprobada' THEN
-        -- Insertar el crédito aprobado en la tabla Creditos con el monto proporcionado manualmente
-        INSERT INTO Creditos (C_num, C_rfc, S_num, C_monto, C_fecha_inicio, C_fecha_venc, C_estado, C_saldo_pend)
-        VALUES (NEW.S_C_folio, NEW.C_rfc, 1, NULL, CURDATE(), CURDATE() + INTERVAL 1 YEAR, 'Activo', NULL);
+        -- Actualizar el crédito aprobado en la tabla Creditos
+        UPDATE Creditos
+        SET C_monto = NEW.S_C_monto_solicitado,
+            C_fecha_inicio = CURDATE(),
+            C_fecha_venc = CURDATE() + INTERVAL 1 YEAR,
+            C_estado = 'Activo',
+            C_saldo_pend = NEW.S_C_monto_solicitado
+        WHERE C_num = NEW.S_C_folio;
     END IF;
 END$$
 
@@ -264,3 +277,102 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER actualizar_creditos
+AFTER UPDATE ON Solicitud_Credito
+FOR EACH ROW
+BEGIN
+    -- Verificar que el estado de la solicitud sea 'Aprobada'
+    IF NEW.S_C_estado_sol = 'Aprobada' THEN
+        -- Actualizar la tabla Creditos solo si el estado es 'En revisión'
+        UPDATE Creditos
+        SET C_monto = NEW.S_C_monto_solicitado,
+            C_saldo_disp = NEW.S_C_monto_solicitado,
+            C_estado = 'Activo'
+        WHERE C_rfc = NEW.C_rfc
+          AND C_estado = 'En revisión';
+    END IF;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER actualizar_saldo_credito_compra
+AFTER INSERT ON Transacciones
+FOR EACH ROW
+BEGIN
+    -- Verificar si la transacción es de tipo 'Compra'
+    IF NEW.T_tipo = 'Compra' THEN
+        -- Actualizar el saldo disponible en la tabla Creditos
+        UPDATE Creditos
+        SET C_saldo_disp = C_saldo_disp - NEW.T_monto,
+            C_saldo_pend = C_saldo_pend - NEW.T_monto
+        WHERE C_num = NEW.C_num;
+    END IF;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER actualizar_saldo_credito_pago
+AFTER INSERT ON Transacciones
+FOR EACH ROW
+BEGIN
+    -- Declarar variables al inicio del bloque
+    DECLARE monto_restante DECIMAL(10,2);
+    DECLARE amortizacion_monto DECIMAL(10,2);
+    DECLARE amortizacion_id INT;
+    DECLARE fin INT DEFAULT 0;
+
+    -- Verificar si la transacción es de tipo 'Pago'
+    IF NEW.T_tipo = 'Pago' THEN
+        -- Inicializar el monto restante con el monto de la amortización pagada
+        SET monto_restante = NEW.T_amort_pagada;
+
+        -- Aplicar el pago a las amortizaciones pendientes
+        WHILE monto_restante > 0 AND fin = 0 DO
+            -- Seleccionar la amortización más antigua pendiente
+            SELECT A_referencia, A_monto
+            INTO amortizacion_id, amortizacion_monto
+            FROM Amortizaciones
+            WHERE C_num = NEW.C_num AND A_estado = 'Pendiente'
+            ORDER BY A_fecha_venc ASC
+            LIMIT 1;
+
+            -- Si no hay más amortizaciones pendientes, salir del bucle
+            IF amortizacion_id IS NULL THEN
+                SET fin = 1;
+            ELSE
+                -- Calcular el monto a aplicar a la amortización
+                IF monto_restante >= amortizacion_monto THEN
+                    -- El pago cubre completamente esta amortización
+                    SET monto_restante = monto_restante - amortizacion_monto;
+
+                    -- Marcar la amortización como pagada
+                    UPDATE Amortizaciones
+                    SET A_monto = 0, A_estado = 'Pagada'
+                    WHERE A_referencia = amortizacion_id;
+                ELSE
+                    -- El pago cubre parcialmente esta amortización
+                    UPDATE Amortizaciones
+                    SET A_monto = A_monto - monto_restante
+                    WHERE A_referencia = amortizacion_id;
+
+                    SET monto_restante = 0;
+                END IF;
+            END IF;
+        END WHILE;
+
+        -- Actualizar el saldo pendiente en la tabla Creditos
+        UPDATE Creditos
+        SET C_saldo_pend = C_saldo_pend + NEW.T_amort_pagada
+        WHERE C_num = NEW.C_num;
+    END IF;
+END$$
+
+DELIMITER ;
+

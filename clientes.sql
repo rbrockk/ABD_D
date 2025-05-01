@@ -20,16 +20,16 @@ VALUES
     'Rodríguez', 'Guadalajara', 'Avenida Guadalajara', 'Centro', 'Jalisco', '44100', 10.0);
     
 -- Insertar solicitud de crédito para Ammisadai Miranda Domínguez
-INSERT INTO Solicitud_Credito (C_rfc, S_C_fecha_sol) 
-VALUES ('AMMD751212PFF', '2025-04-29');
+INSERT INTO Solicitud_Credito (C_rfc, S_C_monto_solicitado, S_C_fecha_sol ) 
+VALUES ('AMMD751212PFF', 55000.00, '2025-04-29');
 
 -- Insertar solicitud de crédito para Iván Ernesto Bazán Méndez
-INSERT INTO Solicitud_Credito (C_rfc, S_C_fecha_sol) 
-VALUES ('IEBM870912HDF', '2025-04-29');
+INSERT INTO Solicitud_Credito (C_rfc, S_C_monto_solicitado, S_C_fecha_sol) 
+VALUES ('IEBM870912HDF', 5000.00, '2025-05-01');
 
 -- Insertar solicitud de crédito para Roberto Adonai Flores Rodríguez
-INSERT INTO Solicitud_Credito (C_rfc, S_C_fecha_sol) 
-VALUES ('RAFR930723HDF', '2025-04-29');
+INSERT INTO Solicitud_Credito (C_rfc, S_C_monto_solicitado, S_C_fecha_sol) 
+VALUES ('RAFR930723HDF', 10000, '2025-04-29');
 
 SELECT * FROM Clientes;
 SELECT * FROM Creditos;
@@ -39,13 +39,16 @@ SELECT * FROM Historial_Estados;
 SELECT S_C_folio FROM Solicitud_Credito;
 
 UPDATE Solicitud_Credito 
-SET S_C_estado_sol = 'Aprobada' 
-WHERE S_C_folio = 202503301;
-
-UPDATE Creditos
-SET C_monto = 50000
-WHERE S_C_folio = "202503301";
+SET S_C_estado_sol = 'Aprobada',
+    S_C_fecha_aprob = CURDATE()
+WHERE S_C_folio = 202504291;
 
 UPDATE Solicitud_Credito 
-SET S_C_estado_sol = 'Rechazada' 
-WHERE S_C_folio = 202503292;
+SET S_C_estado_sol = 'Aprobada',
+    S_C_fecha_aprob = CURDATE()
+WHERE S_C_folio = 202505011;
+
+UPDATE Solicitud_Credito 
+SET S_C_estado_sol = 'Aprobada', 
+    S_C_fecha_aprob = CURDATE()
+WHERE S_C_folio = 202504292;

@@ -42,7 +42,8 @@ CREATE TABLE Solicitud_Credito (
     C_rfc CHAR(13) NOT NULL,
     S_C_estado_sol ENUM('Aprobada', 'Rechazada', 'Pendiente') NOT NULL,
     S_C_fecha_sol DATE NOT NULL,
-    S_C_fecha_aprob TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    S_C_fecha_aprob DATE,
+    S_C_monto_solicitado DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     FOREIGN KEY (C_rfc) REFERENCES Clientes(C_rfc)
 );
 
@@ -51,19 +52,18 @@ CREATE TABLE Creditos (
     C_num INT PRIMARY KEY,
     C_rfc CHAR(13) NOT NULL,
     S_num SMALLINT NOT NULL,
-    C_monto DECIMAL(10,2),
+    C_monto DECIMAL(10,2) DEFAULT 0.00,
     C_fecha_inicio DATE NOT NULL,
     C_fecha_venc DATE NOT NULL,
     C_estado ENUM('Activo', 'Pagado', 'En revisión') NOT NULL,
-    C_saldo_pend DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    C_saldo_pend DECIMAL(10,2) DEFAULT 0.00,
     C_tasa_interes_anual DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    C_saldo_disp DECIMAL(10,2) DEFAULT 0.00,
     FOREIGN KEY (C_rfc) REFERENCES Clientes(C_rfc),
     FOREIGN KEY (S_num) REFERENCES Sucursal(S_num)
 );
 
 
-ALTER TABLE Creditos
-MODIFY COLUMN C_monto DECIMAL(10,2) NOT NULL DEFAULT 0.00;
 
 -- Tabla Amortizaciones
 CREATE TABLE Amortizaciones (
@@ -84,7 +84,8 @@ CREATE TABLE Historial_Estados (
     H_E_fecha_cambio DATE NOT NULL,
     FOREIGN KEY (H_E_rfc_cliente) REFERENCES Clientes(C_rfc),
     FOREIGN KEY (S_C_folio) REFERENCES Solicitud_Credito(S_C_folio)
-);
+);ALTER TABLE Creditos 
+ADD COLUMN C_saldo_disp DECIMAL(10,2) DEFAULT 0.00 AFTER C_saldo_pend;
 
 -- Tabla Transacciones
 CREATE TABLE Transacciones (
