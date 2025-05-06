@@ -84,8 +84,7 @@ CREATE TABLE Historial_Estados (
     H_E_fecha_cambio DATE NOT NULL,
     FOREIGN KEY (H_E_rfc_cliente) REFERENCES Clientes(C_rfc),
     FOREIGN KEY (S_C_folio) REFERENCES Solicitud_Credito(S_C_folio)
-);ALTER TABLE Creditos 
-ADD COLUMN C_saldo_disp DECIMAL(10,2) DEFAULT 0.00 AFTER C_saldo_pend;
+);
 
 -- Tabla Transacciones
 CREATE TABLE Transacciones (
